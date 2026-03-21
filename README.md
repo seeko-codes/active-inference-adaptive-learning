@@ -1,196 +1,128 @@
-# Active Inference Adaptive Learning System
+# Synthetic Students: Normative Education via Active Inference
 
-An algebra tutoring system where the AI doesn't follow rigid rules — it builds a probabilistic model of the student's mind and selects teaching actions that minimize uncertainty about what they know.
+> **Meta question:** Can we normatively determine optimal curricula by simulating synthetic learners — without collecting real-world student data?
 
-The core engine is a **POMDP (Partially Observable Markov Decision Process)** solved via **active inference** (Free Energy Principle). The system never directly observes a student's knowledge state — it infers it from behavior, then picks the next problem to simultaneously reduce its own uncertainty and maximize learning outcomes.
+Traditional learning design relies on trial and error across real students. This project takes the opposite approach: model the cognitive processes mathematically, simulate a wide range of learner types, and let the optimal curriculum emerge from the model.
+
+We run Monte Carlo simulations of **active inference agents** — synthetic students whose hidden knowledge states evolve as they solve algebra problems. By mapping the full space of possible learning paths across simulated learner profiles, we identify which sequences work best for each cognitive type. The result is a proof-of-concept for **normative education**: curricula that are mathematically derived, not empirically guessed.
 
 ---
 
-## How It Works
+## The Two Layers
 
-Every time a student answers a problem, the system observes three things:
+### Layer 1 — Simulation (the meta question)
+Synthetic students are modeled as POMDPs. Each agent's knowledge state Θ is hidden and inferred from observable responses:
 
-| Observable | Values |
+| State Dimension | What it tracks |
 |---|---|
-| Correctness | correct / incorrect |
-| Response time | fast (<5s) / normal (5–15s) / slow (>15s) |
-| Explanation quality | low / medium / high |
+| **Bc** — Conceptual knowledge | Understanding of algebraic structure |
+| **Bp** — Procedural fluency | Execution accuracy |
+| **Korg** — Organization | How knowledge is structured and connected |
+| **φ (RS/SS)** — Memory dynamics | Retrievability + stability (spaced repetition) |
+| **WM** — Working memory load | Cognitive demand in the moment |
+| **Affect** | Frustrated / engaged / bored |
 
-From these observations, it maintains a **belief distribution** over 5 hidden cognitive dimensions per skill:
+Monte Carlo simulation runs n agents through the 2,519-problem algebraic knowledge space and maps which learning paths produce the best belief state evolution for each learner type.
 
-| Dimension | Bins | What it captures |
-|---|---|---|
-| **Retrievability (RS)** | 5 | Current recall probability (0–1) |
-| **Stability (SS)** | 4 | How deeply encoded the memory is (in days) |
-| **Schema** | 3 | Knowledge organization: none / partial / full |
-| **Working Memory Load** | 3 | Cognitive demand: low / moderate / high |
-| **Affect** | 3 | Emotional state: frustrated / engaged / bored |
+**Results so far:**
+- *Student A (Weak Procedural)* — system detects Bc/Bp dissociation, shifts to procedural drilling
+- *Student B (Rote Learner)* — system forces conceptual repair through property identification tasks
+- *Student C (Memory Decay)* — system auto-implements spacing via detected φ decline
+- Posterior beliefs narrow to precise state estimates after 15–20 problems
 
-Joint state space per skill: **5 × 4 × 3 × 3 × 3 = 540 states**, tracked as a factorized belief (mean-field approximation).
-
-### Action Selection via Expected Free Energy
-
-The agent selects the next pedagogical action by minimizing **Expected Free Energy (EFE)**:
+### Layer 2 — Live System (the normal question)
+The same active inference agent that drives simulation runs in real time as a tutor. Every student response updates the belief state; the agent then selects the next teaching action by minimizing **Expected Free Energy**:
 
 ```
-G(action) = epistemic_value + pragmatic_value
+G(action) = epistemic value + pragmatic value
 ```
 
-- **Epistemic value** — how much the action will reduce uncertainty about the student's state (drives diagnostic probing when the agent doesn't know enough)
-- **Pragmatic value** — how well the action aligns with preferred outcomes (correct answers, good explanations, engaged student)
+- High uncertainty → epistemic dominates → diagnostic probing
+- Low uncertainty → pragmatic dominates → deploy optimal technique
 
-This naturally produces adaptive behavior: when uncertain → diagnose; when confident → teach optimally.
+**Teaching actions drawn from learning science:**
 
-### Available Teaching Actions
-
-| Action | When triggered |
+| Action | Grounded in |
 |---|---|
-| `reteach` | RS very low — retrieval will fail |
-| `desirable_difficulty` | RS low — struggle zone for max encoding gain |
-| `practice` | RS moderate — productive practice |
-| `worked_example` | Schema undeveloped — full scaffolding |
-| `faded_example` | Schema partial — gradually remove hints |
-| `space_and_test` | High stability — spaced retrieval |
-| `interleave` | Low discriminability — student confusing similar skills |
-| `diagnostic_probe` | High uncertainty — need more information |
+| `worked_example` → `faded_example` → `full_problem` | Cognitive Load Theory (Sweller, 1988) |
+| `space_and_test` | Spacing + desirable difficulties (Bjork, 1994) |
+| `interleave` | Discrimination learning, transfer theory |
+| `desirable_difficulty` | Bjork & Bjork (1992) new theory of disuse |
+| `diagnostic_probe` | Knowledge Tracing (Corbett & Anderson, 1995) |
 
 ---
 
 ## Architecture
 
 ```
-Frontend (React/TypeScript)
-        ↓ HTTP (FastAPI)
-    server.py
-        ↓
-  ┌─────────────────────────────────────┐
-  │         active_inference/           │
-  │  pomdp.py — ActiveInferenceAgent    │
-  │    ├── A matrices (observation)     │
-  │    ├── B matrices (transition)      │
-  │    ├── C vectors (preferences)      │
-  │    └── pymdp Agent (EFE solver)     │
-  └─────────────────────────────────────┘
-        ↓
-  ┌─────────────────────────────────────┐
-  │           inference/                │
-  │  State estimators per dimension:    │
-  │  retrievability, stability,         │
-  │  schema, wm_load, affect,           │
-  │  discriminability, confidence       │
-  └─────────────────────────────────────┘
-        ↓
-  ┌─────────────────────────────────────┐
-  │            domain/                  │
-  │  Problem generation + taxonomy      │
-  │  14 algebra skill types             │
-  │  Knowledge space (540 problems)     │
-  └─────────────────────────────────────┘
+Monte Carlo Simulation                   Live Tutor
+─────────────────────                    ──────────
+n synthetic agents                       Real student
+       ↓                                      ↓
+  POMDP belief update  ←── same engine ───→  POMDP belief update
+       ↓                                      ↓
+  Policy via EFE                         Policy via EFE
+       ↓                                      ↓
+  Learning path logged                   Next problem served
+       ↓
+  Normative landscape map
+```
+
+```
+active_inference/
+  pomdp.py            # A/B/C/D matrices + pymdp EFE solver
+  state_space.py      # State dimensions and discretization
+  transition_model.py # How actions change cognitive states
+
+inference/            # Per-dimension state estimators
+  memory_state.py     # φ: retrievability + stability
+  schema_state.py     # Korg: knowledge organization
+  wm_load.py          # Working memory demand
+  affect_state.py     # Frustration / engagement / boredom
+  discriminability.py # Confusion between similar skills
+
+simulation/           # Monte Carlo normative mapping
+  learner_types.py    # Struggling / average / advanced profiles
+  simulated_agent.py  # Synthetic student response model
+  monte_carlo.py      # Batch simulation + landscape analysis
+
+domain/               # Algebraic knowledge space
+  taxonomy.py         # 11 skills, 10 question types, confusable pairs
+  knowledge_space.py  # 2,519 unique problem forms
+  generate.py / render.py
+
+frontend/             # React/TypeScript tutor UI
+server.py             # FastAPI — bridges inference engine to UI
 ```
 
 ---
 
-## Project Structure
+## Running
 
-```
-adaptive-learning/
-├── active_inference/        # POMDP core
-│   ├── pomdp.py             # ActiveInferenceAgent (A/B/C/D matrices + pymdp)
-│   ├── state_space.py       # 5-dim state space definition and discretization
-│   └── transition_model.py  # How actions change cognitive states
-│
-├── inference/               # Per-dimension state estimators
-│   ├── affect_state.py      # Frustration / engagement / boredom
-│   ├── confidence.py        # Self-reported confidence tracking
-│   ├── discriminability.py  # Confusion between similar skills
-│   ├── memory_state.py      # Retrievability + stability (spaced repetition)
-│   ├── schema_state.py      # Knowledge organization level
-│   └── wm_load.py           # Working memory demand
-│
-├── domain/                  # Algebra problem generation
-│   ├── taxonomy.py          # 11 skills, confusable pairs, difficulty tiers
-│   ├── generate.py          # Problem generator
-│   ├── render.py            # Problem rendering (LaTeX / plain text)
-│   ├── knowledge_space.py   # Problem bank structure
-│   └── cognitive_features.py # Feature extraction from student responses
-│
-├── simulation/              # Monte Carlo simulation of learner types
-│   ├── learner_types.py     # Struggling / average / advanced learner models
-│   ├── simulated_agent.py   # Simulated student responses
-│   └── monte_carlo.py       # Batch simulation + analysis
-│
-├── frontend/                # React UI
-│   └── src/
-│       ├── App.tsx           # Session state machine (login→problem→confidence→feedback)
-│       ├── components/
-│       │   ├── ProblemCard.tsx      # Problem display + answer input
-│       │   ├── ConfidencePrompt.tsx # Self-report confidence (1–5)
-│       │   ├── FeedbackView.tsx     # Correctness + explanation
-│       │   └── SessionDashboard.tsx # Live belief state visualization
-│       └── api.ts            # Backend API client
-│
-├── server.py                # FastAPI server
-├── meta_function.py         # Rule-based fallback (used if pymdp unavailable)
-└── data/                    # Generated knowledge space JSON
-```
-
----
-
-## Running Locally
-
-### Backend
-
+**Backend**
 ```bash
-# Install dependencies
 pip install -r requirements.txt
-
-# Start the API server
-python server.py
-# → http://localhost:8000
+python server.py          # → localhost:8000
 ```
 
-Requirements include: `fastapi`, `uvicorn`, `pymdp`, `jax`, `numpy`, `pydantic`
-
-### Frontend
-
+**Frontend**
 ```bash
-cd frontend
-
-# Install dependencies
-npm install
-
-# Start dev server
-npm run dev
-# → http://localhost:5173
+cd frontend && npm install && npm run dev   # → localhost:5173
 ```
 
-Make sure the backend is running first — the frontend connects to `localhost:8000` by default.
+**Simulation**
+```bash
+python -m simulation.monte_carlo           # runs normative mapping
+```
 
 ---
 
-## Theoretical Background
+## References
 
-This system applies the **Free Energy Principle** (Karl Friston) to education:
-
-- The agent maintains beliefs about a student's latent cognitive state
-- It selects actions (problem types) that minimize expected surprise
-- Epistemic actions reduce uncertainty; pragmatic actions pursue learning goals
-- The tension between these drives naturally adaptive, personalized teaching
-
-The 5-dimensional state model is grounded in cognitive science:
-- **Retrievability + Stability** → spaced repetition theory (Ebbinghaus / Wozniak)
-- **Schema** → cognitive load theory (Sweller)
-- **Working Memory** → Baddeley's model
-- **Affect** → self-determination theory (Ryan & Deci)
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| AI engine | [pymdp](https://github.com/infer-actively/pymdp) + JAX |
-| Backend | FastAPI + Python |
-| Frontend | React 19 + TypeScript + Vite |
-| UI | Tailwind CSS + shadcn/ui + Framer Motion |
-| Deployment | Vercel |
+- Parr, Pezzulo & Friston (2022). *Active Inference: The Free Energy Principle in Mind, Brain, and Behavior.* MIT Press.
+- Corbett & Anderson (1995). Knowledge tracing: Modeling procedural knowledge acquisition.
+- Bjork (1994). Institutional impediments to self-directed learning.
+- Bjork & Bjork (1992). A new theory of disuse and stimulus fluctuation.
+- Sweller (1988). Cognitive load during problem solving.
+- Piech et al. (2015). Deep knowledge tracing.
+- Singley & Anderson (1989). *The Transfer of Cognitive Skill.*
