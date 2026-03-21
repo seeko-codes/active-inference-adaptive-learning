@@ -1,0 +1,10 @@
+{
+  "framework": null,
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/dist",
+  "rewrites": [
+    { "source": "/session/:path*", "destination": "/api/main" },
+    { "source": "/browse/api/:path*", "destination": "/api/browse" },
+    { "source": "/browse", "destination": "/api/browse" }
+  ]
+}
