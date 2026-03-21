@@ -111,6 +111,10 @@ def pretty_print(node, parent_op=None, is_right=False):
         needs_parens = True
     if is_right and parent_op in ("-", "/") and my_prec == parent_prec:
         needs_parens = True
+    # Preserve associativity grouping: a + (b + c) must keep parens
+    # to distinguish from (a + b) + c (left-associative default)
+    if is_right and parent_op == "+" and node.op == "+":
+        needs_parens = True
 
     if needs_parens:
         result = f"({result})"
