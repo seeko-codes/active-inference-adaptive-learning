@@ -3,3 +3,8 @@ __pycache__/
 .DS_Store
 *.egg-info/
 .env
+.vercel
+node_modules/
+frontend/dist/
+data/problems_for_review.md
+PHASE_5_FRONTEND_OUTLINE.md
