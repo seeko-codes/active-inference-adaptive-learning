@@ -1,0 +1,752 @@
+{
+  "total_unique_forms": 2519,
+  "forms_by_tier": {
+    "0": 147,
+    "1": 4,
+    "2": 262,
+    "3": 76,
+    "4": 36,
+    "5": 69,
+    "6": 474,
+    "7": 1451
+  },
+  "forms_by_layer": {
+    "0": 35,
+    "1": 101,
+    "2": 201,
+    "3": 358,
+    "4": 665,
+    "5": 1159
+  },
+  "skill_coverage": {
+    "A-Comm": 1701,
+    "M-Comm": 1602,
+    "Dist-Right": 1521,
+    "Dist-Left": 1456,
+    "Sub-Def": 1070,
+    "A-Assoc": 448,
+    "A-Assoc-Rev": 424,
+    "M-Assoc": 93,
+    "M-Assoc-Rev": 78,
+    "Div-Def": 65,
+    "Factor": 8
+  },
+  "unique_skill_combinations": 107,
+  "skill_combination_detail": {
+    "A-Comm + Dist-Left + Dist-Right + M-Comm": 203,
+    "A-Comm + Dist-Left + Dist-Right + M-Comm + Sub-Def": 160,
+    "Dist-Left + Dist-Right + M-Comm + Sub-Def": 132,
+    "A-Comm + Dist-Right + M-Comm + Sub-Def": 122,
+    "A-Comm + Dist-Left + Dist-Right + Sub-Def": 108,
+    "A-Comm + Dist-Left + M-Comm + Sub-Def": 104,
+    "A-Assoc + A-Comm": 90,
+    "A-Assoc-Rev + A-Comm": 88,
+    "A-Assoc + A-Assoc-Rev + A-Comm": 64,
+    "A-Comm + Dist-Right + M-Comm": 59,
+    "Dist-Left + Dist-Right + M-Comm": 55,
+    "A-Assoc + A-Comm + Dist-Left + Dist-Right + M-Comm": 54,
+    "A-Comm + Dist-Left + M-Comm": 51,
+    "A-Assoc-Rev + A-Comm + Dist-Left + Dist-Right + M-Comm": 50,
+    "M-Assoc + M-Comm": 45,
+    "A-Comm": 44,
+    "M-Comm": 44,
+    "M-Assoc-Rev + M-Comm": 44,
+    "A-Comm + Dist-Left + Dist-Right": 42,
+    "A-Assoc + A-Comm + Dist-Left + Dist-Right": 42,
+    "A-Assoc-Rev + A-Comm + Dist-Left + Dist-Right": 42,
+    "Dist-Right + M-Comm + Sub-Def": 41,
+    "A-Comm + Dist-Right + Sub-Def": 41,
+    "(seed)": 35,
+    "Dist-Left + M-Comm + Sub-Def": 33,
+    "M-Assoc + M-Assoc-Rev + M-Comm": 32,
+    "A-Comm + M-Comm": 32,
+    "A-Assoc + A-Comm + Dist-Left + Dist-Right + Sub-Def": 32,
+    "A-Assoc-Rev + A-Comm + Dist-Left + Dist-Right + Sub-Def": 32,
+    "A-Comm + Dist-Left + Sub-Def": 31,
+    "A-Assoc + Dist-Left + Dist-Right + M-Comm": 28,
+    "Dist-Left + Dist-Right + Sub-Def": 26,
+    "A-Assoc-Rev + Dist-Left + Dist-Right + M-Comm": 26,
+    "A-Assoc + Dist-Left + Dist-Right + M-Comm + Sub-Def": 24,
+    "A-Assoc-Rev + Dist-Left + Dist-Right + M-Comm + Sub-Def": 24,
+    "A-Assoc + A-Comm + Dist-Right + M-Comm": 21,
+    "Dist-Right + M-Comm": 19,
+    "A-Comm + Sub-Def": 19,
+    "A-Comm + M-Comm + Sub-Def": 19,
+    "A-Comm + Dist-Right": 17,
+    "A-Assoc-Rev + A-Comm + Dist-Right + M-Comm": 17,
+    "A-Assoc-Rev + A-Comm + M-Comm": 16,
+    "Dist-Left + M-Comm": 15,
+    "A-Assoc + Dist-Left + Dist-Right + Sub-Def": 14,
+    "A-Assoc-Rev + Dist-Left + Dist-Right + Sub-Def": 14,
+    "A-Assoc": 12,
+    "A-Assoc + A-Comm + M-Comm": 12,
+    "A-Assoc + A-Comm + Dist-Left + M-Comm": 12,
+    "Sub-Def": 11,
+    "M-Comm + Sub-Def": 11,
+    "Dist-Right + Sub-Def": 11,
+    "A-Assoc-Rev + A-Comm + Dist-Left + M-Comm": 11,
+    "A-Comm + Dist-Left": 8,
+    "Div-Def + M-Assoc + M-Comm": 8,
+    "A-Assoc-Rev + A-Comm + Dist-Right": 8,
+    "Dist-Right": 7,
+    "Div-Def + M-Comm": 7,
+    "Dist-Left + Sub-Def": 7,
+    "M-Assoc": 6,
+    "A-Assoc-Rev + A-Comm + Dist-Left + M-Comm + Sub-Def": 6,
+    "Dist-Left + Dist-Right": 6,
+    "A-Assoc + Dist-Right + M-Comm": 6,
+    "A-Assoc + A-Comm + Dist-Right": 6,
+    "Div-Def": 5,
+    "A-Assoc-Rev + Dist-Right + M-Comm + Sub-Def": 5,
+    "A-Assoc + M-Comm": 4,
+    "A-Assoc + A-Comm + Dist-Left + Sub-Def": 4,
+    "A-Assoc-Rev + Dist-Left + M-Comm + Sub-Def": 4,
+    "A-Assoc + Dist-Right + M-Comm + Sub-Def": 4,
+    "Dist-Left + Div-Def": 4,
+    "A-Comm + Dist-Left + Div-Def": 4,
+    "Dist-Left + Div-Def + M-Comm": 4,
+    "A-Comm + Dist-Left + Div-Def + M-Comm": 4,
+    "Dist-Left + Div-Def + Sub-Def": 4,
+    "Dist-Left + Div-Def + M-Comm + Sub-Def": 4,
+    "A-Assoc + Dist-Left + Dist-Right": 4,
+    "A-Assoc-Rev + Dist-Left + Dist-Right": 4,
+    "A-Assoc + Dist-Left + M-Comm": 4,
+    "A-Assoc + A-Assoc-Rev + Dist-Left + Dist-Right": 4,
+    "A-Assoc-Rev + A-Comm + Dist-Left + Sub-Def": 3,
+    "A-Assoc-Rev + A-Comm + Dist-Right + M-Comm + Sub-Def": 3,
+    "A-Comm + Dist-Left + Div-Def + Sub-Def": 3,
+    "Dist-Left": 2,
+    "Factor": 2,
+    "A-Comm + Factor": 2,
+    "Factor + M-Comm": 2,
+    "A-Comm + Factor + M-Comm": 2,
+    "A-Assoc + A-Comm + Dist-Left + M-Comm + Sub-Def": 2,
+    "A-Comm + Div-Def": 2,
+    "A-Comm + Div-Def + M-Comm": 2,
+    "A-Assoc + Dist-Left + M-Comm + Sub-Def": 2,
+    "Div-Def + M-Assoc": 2,
+    "Div-Def + M-Assoc-Rev + M-Comm": 2,
+    "A-Comm + Dist-Left + Div-Def + M-Comm + Sub-Def": 2,
+    "A-Assoc + Dist-Right": 2,
+    "A-Assoc-Rev + Dist-Left + Sub-Def": 1,
+    "A-Assoc + A-Comm + Dist-Right + M-Comm + Sub-Def": 1,
+    "Dist-Right + Div-Def + M-Comm": 1,
+    "A-Comm + Dist-Right + Div-Def + M-Comm": 1,
+    "Div-Def + Sub-Def": 1,
+    "A-Comm + Div-Def + Sub-Def": 1,
+    "Div-Def + M-Comm + Sub-Def": 1,
+    "A-Comm + Div-Def + M-Comm + Sub-Def": 1,
+    "Dist-Right + Div-Def + M-Comm + Sub-Def": 1,
+    "A-Comm + Dist-Right + Div-Def + M-Comm + Sub-Def": 1,
+    "A-Assoc-Rev + Dist-Right + M-Comm": 1,
+    "A-Assoc-Rev + Dist-Left + M-Comm": 1
+  },
+  "cognitive_feature_statistics": {
+    "density_load": {
+      "min": 2,
+      "max": 9,
+      "mean": 8.073,
+      "median": 9
+    },
+    "challenge_level": {
+      "min": 0.0,
+      "max": 0.805,
+      "mean": 0.64,
+      "median": 0.725
+    },
+    "scaffolding_demand": {
+      "min": 0.008,
+      "max": 0.487,
+      "mean": 0.339,
+      "median": 0.36
+    },
+    "transfer_distance": {
+      "min": 0.0,
+      "max": 0.751,
+      "mean": 0.493,
+      "median": 0.55
+    },
+    "transfer_structural": {
+      "min": 0.0,
+      "max": 0.938,
+      "mean": 0.717,
+      "median": 0.769
+    },
+    "transfer_surface": {
+      "min": 0.0,
+      "max": 0.565,
+      "mean": 0.27,
+      "median": 0.333
+    },
+    "cross_cluster_demand": {
+      "min": 0.0,
+      "max": 0.9,
+      "mean": 0.553,
+      "median": 0.7
+    },
+    "retrieval_base": {
+      "min": 0.15,
+      "max": 0.659,
+      "mean": 0.519,
+      "median": 0.559
+    },
+    "spacing_sensitivity": {
+      "min": 0.18,
+      "max": 0.577,
+      "mean": 0.498,
+      "median": 0.527
+    },
+    "diagnostic_value": {
+      "min": 0.366,
+      "max": 0.846,
+      "mean": 0.521,
+      "median": 0.504
+    }
+  },
+  "cluster_distribution": {
+    "additive_structure": 1236,
+    "distribution": 1021,
+    "multiplicative_structure": 197,
+    "signed_arithmetic": 49,
+    "complex_composition": 6,
+    "order_of_operations": 5,
+    "signed_distribution": 5
+  },
+  "bridge_problems": 1981,
+  "bridge_ratio": 0.786,
+  "tier_hierarchy": [
+    {
+      "tier": 0,
+      "name": "Raw Arithmetic",
+      "description": "Pure computation with addition and multiplication. No symbolic manipulation \u2014 just compute.",
+      "prerequisites": [],
+      "unlocks": [],
+      "total_forms": 147,
+      "skills_exercised": [
+        "A-Assoc",
+        "A-Assoc-Rev",
+        "A-Comm",
+        "M-Assoc",
+        "M-Assoc-Rev",
+        "M-Comm"
+      ],
+      "seeds": {
+        "0a_add_two": "a + b",
+        "0b_add_three": "a + b + c",
+        "0c_add_four": "a + b + c + d",
+        "0d_mult_two": "ab",
+        "0e_mult_three": "(ab)c"
+      },
+      "feature_ranges": {
+        "density_load": {
+          "min": 2,
+          "max": 6,
+          "mean": 5.4
+        },
+        "challenge_level": {
+          "min": 0.0,
+          "max": 0.26,
+          "mean": 0.222
+        },
+        "scaffolding_demand": {
+          "min": 0.008,
+          "max": 0.342,
+          "mean": 0.231
+        },
+        "transfer_distance": {
+          "min": 0.0,
+          "max": 0.375,
+          "mean": 0.262
+        },
+        "diagnostic_value": {
+          "min": 0.366,
+          "max": 0.723,
+          "mean": 0.526
+        }
+      },
+      "cluster_distribution": {
+        "additive_structure": 133,
+        "multiplicative_structure": 14
+      },
+      "bridge_count": 0
+    },
+    {
+      "tier": 1,
+      "name": "Commutativity",
+      "description": "Order doesn't matter for addition and multiplication. First structural property.",
+      "prerequisites": [
+        0
+      ],
+      "unlocks": [
+        "A-Comm",
+        "M-Comm"
+      ],
+      "total_forms": 4,
+      "skills_exercised": [
+        "A-Comm",
+        "M-Comm"
+      ],
+      "seeds": {
+        "1a_add_two": "a + b",
+        "1b_mult_two": "ab"
+      },
+      "feature_ranges": {
+        "density_load": {
+          "min": 2,
+          "max": 2,
+          "mean": 2.0
+        },
+        "challenge_level": {
+          "min": 0.05,
+          "max": 0.138,
+          "mean": 0.094
+        },
+        "scaffolding_demand": {
+          "min": 0.008,
+          "max": 0.068,
+          "mean": 0.038
+        },
+        "transfer_distance": {
+          "min": 0.0,
+          "max": 0.125,
+          "mean": 0.062
+        },
+        "diagnostic_value": {
+          "min": 0.442,
+          "max": 0.557,
+          "mean": 0.5
+        }
+      },
+      "cluster_distribution": {
+        "multiplicative_structure": 2,
+        "additive_structure": 2
+      },
+      "bridge_count": 0
+    },
+    {
+      "tier": 2,
+      "name": "Associativity",
+      "description": "Three terms under one operation. Grouping doesn't matter. Associativity and commutativity interact.",
+      "prerequisites": [
+        1
+      ],
+      "unlocks": [
+        "A-Assoc",
+        "A-Assoc-Rev",
+        "M-Assoc",
+        "M-Assoc-Rev"
+      ],
+      "total_forms": 262,
+      "skills_exercised": [
+        "A-Assoc",
+        "A-Assoc-Rev",
+        "A-Comm",
+        "M-Assoc",
+        "M-Assoc-Rev",
+        "M-Comm"
+      ],
+      "seeds": {
+        "2a_add_three": "a + b + c",
+        "2b_mult_three": "(ab)c",
+        "2c_add_four": "a + b + c + d",
+        "2d_mult_four": "((ab)c)d"
+      },
+      "feature_ranges": {
+        "density_load": {
+          "min": 4,
+          "max": 6,
+          "mean": 5.63
+        },
+        "challenge_level": {
+          "min": 0.1,
+          "max": 0.36,
+          "mean": 0.333
+        },
+        "scaffolding_demand": {
+          "min": 0.025,
+          "max": 0.342,
+          "mean": 0.245
+        },
+        "transfer_distance": {
+          "min": 0.0,
+          "max": 0.375,
+          "mean": 0.273
+        },
+        "diagnostic_value": {
+          "min": 0.539,
+          "max": 0.786,
+          "mean": 0.601
+        }
+      },
+      "cluster_distribution": {
+        "multiplicative_structure": 131,
+        "additive_structure": 131
+      },
+      "bridge_count": 0
+    },
+    {
+      "tier": 3,
+      "name": "Order of Operations (PEMA)",
+      "description": "Multiplication before Addition. No distribution \u2014 just precedence. Classic error zone.",
+      "prerequisites": [
+        1,
+        2
+      ],
+      "unlocks": [],
+      "total_forms": 76,
+      "skills_exercised": [
+        "A-Assoc",
+        "A-Assoc-Rev",
+        "A-Comm",
+        "Dist-Left",
+        "Dist-Right",
+        "M-Comm"
+      ],
+      "seeds": {
+        "3a_ma_right": "ab + c",
+        "3b_ma_left": "a + bc",
+        "3c_ma_double": "ab + cd",
+        "3d_ma_triple": "ab + cd + e",
+        "3e_parens": "a(b + c)"
+      },
+      "feature_ranges": {
+        "density_load": {
+          "min": 5,
+          "max": 8,
+          "mean": 7.11
+        },
+        "challenge_level": {
+          "min": 0.15,
+          "max": 0.585,
+          "mean": 0.347
+        },
+        "scaffolding_demand": {
+          "min": 0.017,
+          "max": 0.342,
+          "mean": 0.178
+        },
+        "transfer_distance": {
+          "min": 0.0,
+          "max": 0.524,
+          "mean": 0.277
+        },
+        "diagnostic_value": {
+          "min": 0.55,
+          "max": 0.769,
+          "mean": 0.617
+        }
+      },
+      "cluster_distribution": {
+        "additive_structure": 58,
+        "multiplicative_structure": 9,
+        "order_of_operations": 5,
+        "distribution": 4
+      },
+      "bridge_count": 46
+    },
+    {
+      "tier": 4,
+      "name": "Distribution",
+      "description": "Multiplication meets addition structurally. Distribution, factoring, and commutativity interact.",
+      "prerequisites": [
+        1,
+        2,
+        3
+      ],
+      "unlocks": [
+        "Dist-Right",
+        "Dist-Left",
+        "Factor"
+      ],
+      "total_forms": 36,
+      "skills_exercised": [
+        "A-Comm",
+        "Dist-Left",
+        "Dist-Right",
+        "Factor",
+        "M-Comm"
+      ],
+      "seeds": {
+        "4a_dist": "a(b + c)",
+        "4b_dist_left": "(a + b)c",
+        "4c_factor_seed": "ab + ac"
+      },
+      "feature_ranges": {
+        "density_load": {
+          "min": 5,
+          "max": 6,
+          "mean": 5.67
+        },
+        "challenge_level": {
+          "min": 0.2,
+          "max": 0.655,
+          "mean": 0.426
+        },
+        "scaffolding_demand": {
+          "min": 0.025,
+          "max": 0.295,
+          "mean": 0.154
+        },
+        "transfer_distance": {
+          "min": 0.0,
+          "max": 0.524,
+          "mean": 0.34
+        },
+        "diagnostic_value": {
+          "min": 0.523,
+          "max": 0.781,
+          "mean": 0.641
+        }
+      },
+      "cluster_distribution": {
+        "additive_structure": 18,
+        "distribution": 13,
+        "multiplicative_structure": 5
+      },
+      "bridge_count": 22
+    },
+    {
+      "tier": 5,
+      "name": "Signed Operations (PEMA Completion)",
+      "description": "Subtraction as addition-of-negation. Division as multiplication-by-reciprocal. Completes PEMA.",
+      "prerequisites": [
+        1
+      ],
+      "unlocks": [
+        "Sub-Def",
+        "Div-Def"
+      ],
+      "total_forms": 69,
+      "skills_exercised": [
+        "A-Assoc",
+        "A-Assoc-Rev",
+        "A-Comm",
+        "Dist-Left",
+        "Dist-Right",
+        "Div-Def",
+        "M-Comm",
+        "Sub-Def"
+      ],
+      "seeds": {
+        "5a_sub": "a - b",
+        "5b_div": "a / b",
+        "5c_sub_after_mult": "ab - c",
+        "5d_sub_before_mult": "a + (0 - b)c",
+        "5e_div_then_add": "a / b + c"
+      },
+      "feature_ranges": {
+        "density_load": {
+          "min": 2,
+          "max": 9,
+          "mean": 7.39
+        },
+        "challenge_level": {
+          "min": 0.25,
+          "max": 0.685,
+          "mean": 0.55
+        },
+        "scaffolding_demand": {
+          "min": 0.008,
+          "max": 0.395,
+          "mean": 0.253
+        },
+        "transfer_distance": {
+          "min": 0.0,
+          "max": 0.6,
+          "mean": 0.396
+        },
+        "diagnostic_value": {
+          "min": 0.485,
+          "max": 0.79,
+          "mean": 0.578
+        }
+      },
+      "cluster_distribution": {
+        "additive_structure": 49,
+        "signed_arithmetic": 12,
+        "distribution": 4,
+        "multiplicative_structure": 4
+      },
+      "bridge_count": 55
+    },
+    {
+      "tier": 6,
+      "name": "Signed Distribution",
+      "description": "Distribution meets subtraction and division. Sign error danger zone.",
+      "prerequisites": [
+        4,
+        5
+      ],
+      "unlocks": [],
+      "total_forms": 474,
+      "skills_exercised": [
+        "A-Assoc",
+        "A-Assoc-Rev",
+        "A-Comm",
+        "Dist-Left",
+        "Dist-Right",
+        "Div-Def",
+        "M-Assoc",
+        "M-Assoc-Rev",
+        "M-Comm",
+        "Sub-Def"
+      ],
+      "seeds": {
+        "6a_dist_sub": "a(b - c)",
+        "6b_dist_neg": "(0 - a)(b + c)",
+        "6c_div_add": "(a + b) / c",
+        "6d_div_product": "ab / c",
+        "6e_div_sub": "(a - b) / c"
+      },
+      "feature_ranges": {
+        "density_load": {
+          "min": 4,
+          "max": 9,
+          "mean": 8.43
+        },
+        "challenge_level": {
+          "min": 0.3,
+          "max": 0.735,
+          "mean": 0.689
+        },
+        "scaffolding_demand": {
+          "min": 0.017,
+          "max": 0.465,
+          "mean": 0.37
+        },
+        "transfer_distance": {
+          "min": 0.0,
+          "max": 0.731,
+          "mean": 0.571
+        },
+        "diagnostic_value": {
+          "min": 0.439,
+          "max": 0.819,
+          "mean": 0.524
+        }
+      },
+      "cluster_distribution": {
+        "distribution": 253,
+        "additive_structure": 169,
+        "signed_arithmetic": 32,
+        "multiplicative_structure": 15,
+        "signed_distribution": 5
+      },
+      "bridge_count": 456
+    },
+    {
+      "tier": 7,
+      "name": "Complex Combinations",
+      "description": "Multi-step problems requiring fluency across all prior tiers. FOIL, signed FOIL, factoring.",
+      "prerequisites": [
+        4,
+        5,
+        6
+      ],
+      "unlocks": [],
+      "total_forms": 1451,
+      "skills_exercised": [
+        "A-Assoc",
+        "A-Assoc-Rev",
+        "A-Comm",
+        "Dist-Left",
+        "Dist-Right",
+        "Factor",
+        "M-Comm",
+        "Sub-Def"
+      ],
+      "seeds": {
+        "7a_foil": "(a + b)(c + d)",
+        "7b_signed_foil": "(a - b)(c + d)",
+        "7c_double_signed": "(a - b)(c - d)",
+        "7d_sub_products": "ab - ac",
+        "7e_sum_products": "ab + ac",
+        "7f_dist_three": "a(b + c + d)"
+      },
+      "feature_ranges": {
+        "density_load": {
+          "min": 5,
+          "max": 9,
+          "mean": 8.82
+        },
+        "challenge_level": {
+          "min": 0.35,
+          "max": 0.805,
+          "mean": 0.748
+        },
+        "scaffolding_demand": {
+          "min": 0.025,
+          "max": 0.487,
+          "mean": 0.375
+        },
+        "transfer_distance": {
+          "min": 0.0,
+          "max": 0.751,
+          "mean": 0.552
+        },
+        "diagnostic_value": {
+          "min": 0.413,
+          "max": 0.846,
+          "mean": 0.495
+        }
+      },
+      "cluster_distribution": {
+        "distribution": 747,
+        "additive_structure": 676,
+        "multiplicative_structure": 17,
+        "complex_composition": 6,
+        "signed_arithmetic": 5
+      },
+      "bridge_count": 1402
+    }
+  ],
+  "skill_descriptions": {
+    "A-Comm": "Additive Commutativity (a + b = b + a)",
+    "A-Assoc": "Additive Associativity, regroup left to right",
+    "A-Assoc-Rev": "Additive Associativity, regroup right to left",
+    "M-Comm": "Multiplicative Commutativity (a * b = b * a)",
+    "M-Assoc": "Multiplicative Associativity, regroup left to right",
+    "M-Assoc-Rev": "Multiplicative Associativity, regroup right to left",
+    "Dist-Right": "Distribution / Expansion (right)",
+    "Dist-Left": "Distribution / Expansion (left)",
+    "Factor": "Factoring (reverse distribution)",
+    "Sub-Def": "Subtraction as addition of negation",
+    "Div-Def": "Division as multiplication by reciprocal"
+  },
+  "axiom_cognitive_classes": {
+    "A-Comm": "structural",
+    "A-Assoc": "structural",
+    "A-Assoc-Rev": "structural",
+    "M-Comm": "structural",
+    "M-Assoc": "structural",
+    "M-Assoc-Rev": "structural",
+    "Dist-Right": "rewrite",
+    "Dist-Left": "rewrite",
+    "Factor": "insight",
+    "Sub-Def": "rewrite",
+    "Div-Def": "rewrite"
+  },
+  "prerequisite_graph": {
+    "Tier 0 (Raw Arithmetic)": "No prerequisites \u2014 entry point. Pure computation.",
+    "Tier 1 (Commutativity)": "Requires Tier 0. First structural property.",
+    "Tier 2 (Associativity)": "Requires Tier 1. Grouping doesn't matter.",
+    "Tier 3 (PEMA / Order of Ops)": "Requires Tier 1 + 2. Multiplication before Addition.",
+    "Tier 4 (Distribution)": "Requires Tier 1 + 2 + 3. Bridge between \u00d7 and +.",
+    "Tier 5 (Signed Ops / PEMA)": "Requires Tier 1. Subtraction=add neg, Division=mult recip.",
+    "Tier 6 (Signed Distribution)": "Requires Tier 4 + 5. Distribution with signs.",
+    "Tier 7 (Complex Combinations)": "Requires Tier 4 + 5 + 6. FOIL, multi-step, factoring."
+  },
+  "feature_mapping_to_curriculum_vector": {
+    "density_load": "D \u2014 matches to WM capacity and cognitive load",
+    "scaffolding_demand": "I \u2014 determines minimum scaffolding level",
+    "transfer_distance": "V \u2014 how far student must generalize from learned chunk (composite)",
+    "transfer_structural": "V \u2014 deep structural rearrangement from canonical form (AST distance)",
+    "transfer_surface": "V \u2014 perceptual dissimilarity from canonical form (string distance)",
+    "primary_cluster": "V \u2014 schema family label for interleaving sequence construction",
+    "cross_cluster_demand": "V \u2014 bridging load across schema families",
+    "retrieval_base": "R \u2014 base retrieval demand (modulated by question type)",
+    "challenge_level": "C \u2014 compared against student's B_C for ZPD targeting",
+    "feedback_ceiling": "F \u2014 maximum useful feedback elaboration",
+    "spacing_sensitivity": "S \u2014 forgetting vulnerability for spacing schedule"
+  }
+}
