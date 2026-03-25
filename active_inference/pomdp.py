@@ -32,11 +32,8 @@ Actions: 8 pedagogical actions from transition_model.py
 """
 
 import numpy as np
-import jax
-import jax.numpy as jnp
 from dataclasses import dataclass, field
-
-from pymdp.agent import Agent as PyMDPAgent
+from scipy.special import softmax as _scipy_softmax
 
 from active_inference.state_space import (
     RS_BINS, SS_BINS, SCHEMA_BINS, WM_BINS, AFFECT_BINS, EI_BINS,
@@ -212,12 +209,12 @@ def _build_confidence_A():
 
 
 def build_A_matrices():
-    """Build all A matrices as JAX arrays."""
+    """Build all A matrices as numpy arrays."""
     return [
-        jnp.array(_build_accuracy_A(), dtype=jnp.float32),
-        jnp.array(_build_response_time_A(), dtype=jnp.float32),
-        jnp.array(_build_explanation_A(), dtype=jnp.float32),
-        jnp.array(_build_confidence_A(), dtype=jnp.float32),
+        _build_accuracy_A().astype(np.float64),
+        _build_response_time_A().astype(np.float64),
+        _build_explanation_A().astype(np.float64),
+        _build_confidence_A().astype(np.float64),
     ]
 
 
@@ -259,14 +256,14 @@ def build_B_matrices():
         col_sums = np.where(col_sums == 0, 1, col_sums)
         B_f /= col_sums
 
-        B_matrices.append(jnp.array(B_f, dtype=jnp.float32))
+        B_matrices.append(B_f.astype(np.float64))
 
     # Factor 5: EI_bin — identity transition (controlled externally)
     n_ei = EI_BINS["n"]
     B_ei = np.zeros((n_ei, n_ei, NUM_ACTIONS))
     for a in range(NUM_ACTIONS):
         B_ei[:, :, a] = np.eye(n_ei)
-    B_matrices.append(jnp.array(B_ei, dtype=jnp.float32))
+    B_matrices.append(B_ei.astype(np.float64))
 
     return B_matrices
 
@@ -287,10 +284,10 @@ def build_C_vectors():
     - Prefer high explanation quality (schema development)
     """
     return [
-        jnp.array([-1.0, 2.0], dtype=jnp.float32),      # accuracy: strongly prefer correct
-        jnp.array([0.5, 1.0, -0.5], dtype=jnp.float32),  # rt: prefer normal, avoid slow
-        jnp.array([-0.5, 0.5, 1.5], dtype=jnp.float32),  # explanation: prefer high quality
-        jnp.array([-0.5, 0.5, 1.0], dtype=jnp.float32),  # confidence: prefer high confidence
+        np.array([-1.0, 2.0]),       # accuracy: strongly prefer correct
+        np.array([0.5, 1.0, -0.5]),   # rt: prefer normal, avoid slow
+        np.array([-0.5, 0.5, 1.5]),   # explanation: prefer high quality
+        np.array([-0.5, 0.5, 1.0]),   # confidence: prefer high confidence
     ]
 
 
@@ -304,7 +301,7 @@ def build_D_vectors():
         RS_BINS["n"], SS_BINS["n"], SCHEMA_BINS["n"],
         WM_BINS["n"], AFFECT_BINS["n"], EI_BINS["n"],
     ]
-    return [jnp.ones(d, dtype=jnp.float32) / d for d in dim_sizes]
+    return [np.ones(d) / d for d in dim_sizes]
 
 
 # ==========================================
@@ -322,13 +319,41 @@ class POMDPConfig:
     alpha: float = 16.0                    # Precision of beliefs
 
 
+def _log_stable(x):
+    """Numerically stable log."""
+    return np.log(np.maximum(x, 1e-16))
+
+
+def _factor_dot(A_m, beliefs, dep_factors):
+    """
+    Contract A matrix with belief vectors over dependent factors.
+
+    A_m has shape (num_obs, dim_f1, dim_f2, ...) where f1, f2, ... are the
+    dependent state factors. Contract each factor dimension with the
+    corresponding belief vector to get predicted observation distribution.
+
+    Returns: 1D array of shape (num_obs,)
+    """
+    result = A_m
+    # Contract from the last factor backward to keep axis indices stable
+    for i in reversed(range(len(dep_factors))):
+        # Axis 0 is the obs dimension; factor i is at axis i+1
+        result = np.tensordot(result, beliefs[dep_factors[i]], axes=([i + 1], [0]))
+    return result
+
+
 class ActiveInferenceAgent:
     """
-    Wrapper around pymdp Agent for the adaptive learning system.
+    Pure-numpy active inference agent for the adaptive learning system.
+
+    Implements expected free energy (EFE) minimization without JAX/XLA
+    to avoid CUDA kernel compilation hangs. The state space is small
+    enough that numpy is fast and the computation is transparent.
 
     Handles:
     - Converting inference engine outputs to POMDP observations
-    - Running belief updates and policy selection
+    - Running belief updates via fixed-point iteration (FPI)
+    - Computing EFE for policy evaluation
     - Converting selected actions back to pedagogical actions
     - Tracking belief state across problems
 
@@ -352,32 +377,11 @@ class ActiveInferenceAgent:
         self.C = build_C_vectors()
         self.D = build_D_vectors()
 
-        # All 6 state factors share the same single action (8 pedagogical actions).
-        # One control factor with NUM_ACTIONS options; all B factors depend on it.
-
-        self._agent = PyMDPAgent(
-            A=self.A,
-            B=self.B,
-            C=self.C,
-            D=self.D,
-            A_dependencies=A_DEPENDENCIES,
-            num_controls=[NUM_ACTIONS],
-            B_action_dependencies=[[0], [0], [0], [0], [0], [0]],
-            policy_len=config.policy_len,
-            use_utility=config.use_utility,
-            use_states_info_gain=config.use_states_info_gain,
-            action_selection=config.action_selection,
-            gamma=config.gamma,
-            alpha=config.alpha,
-            inference_algo="fpi",
-            batch_size=1,
-        )
-
-        # Current beliefs — start with priors
-        self._beliefs = [d[None, :] for d in self.D]  # Add batch dim
+        self._beliefs = [d.copy() for d in self.D]
         self._step_count = 0
-        self._rng_key = jax.random.PRNGKey(0)
-        self._model_lr = 0.1  # Learning rate for A/B matrix updates (Fix 10)
+        self._rng = np.random.default_rng(0)
+        self._model_lr = 0.1
+        self._fpi_num_iter = 16
 
     def _discretize_obs(
         self,
@@ -385,12 +389,10 @@ class ActiveInferenceAgent:
         response_time_ms: float,
         explanation_quality: float,
         confidence: int = 0,
-    ) -> list:
+    ) -> list[int]:
         """Convert raw observables to discrete observation indices."""
-        # Accuracy: 0=incorrect, 1=correct
         obs_accuracy = 1 if correct else 0
 
-        # Response time regime: 0=fast (<5s), 1=normal (5-15s), 2=slow (>15s)
         if response_time_ms < 5000:
             obs_rt = 0
         elif response_time_ms < 15000:
@@ -398,7 +400,6 @@ class ActiveInferenceAgent:
         else:
             obs_rt = 2
 
-        # Explanation quality: 0=low (<0.35), 1=medium (0.35-0.65), 2=high (>0.65)
         if explanation_quality < 0.35:
             obs_eq = 0
         elif explanation_quality < 0.65:
@@ -406,7 +407,6 @@ class ActiveInferenceAgent:
         else:
             obs_eq = 2
 
-        # Confidence: 0=low (1-2), 1=medium (3), 2=high (4-5)
         if confidence <= 2:
             obs_conf = 0
         elif confidence <= 3:
@@ -414,19 +414,138 @@ class ActiveInferenceAgent:
         else:
             obs_conf = 2
 
-        return [
-            jnp.array([obs_accuracy]),
-            jnp.array([obs_rt]),
-            jnp.array([obs_eq]),
-            jnp.array([obs_conf]),
-        ]
+        return [obs_accuracy, obs_rt, obs_eq, obs_conf]
 
     def set_ei_belief(self, ei_value: float):
         """Set the EI factor belief to a known value (one-hot delta)."""
         ei_bin = discretize_ei(ei_value)
-        ei_belief = jnp.zeros(EI_BINS["n"], dtype=jnp.float32)
-        ei_belief = ei_belief.at[ei_bin].set(1.0)
-        self._beliefs[5] = ei_belief[None, :]  # Add batch dim
+        ei_belief = np.zeros(EI_BINS["n"])
+        ei_belief[ei_bin] = 1.0
+        self._beliefs[5] = ei_belief
+
+    def _infer_states(self, obs_indices: list[int], prior: list[np.ndarray]) -> list[np.ndarray]:
+        """
+        Fixed-point iteration (FPI) for state inference.
+
+        Given observations and priors, update beliefs over each state factor
+        by iteratively incorporating likelihood evidence from all observation
+        modalities that depend on that factor.
+        """
+        num_factors = len(prior)
+        qs = [p.copy() for p in prior]
+
+        for _iteration in range(self._fpi_num_iter):
+            qs_old = [q.copy() for q in qs]
+
+            for f in range(num_factors):
+                # Accumulate log-likelihood from all modalities depending on factor f
+                log_likelihood = np.zeros_like(qs[f])
+
+                for m, obs_idx in enumerate(obs_indices):
+                    dep_factors = A_DEPENDENCIES[m]
+                    if f not in dep_factors:
+                        continue
+
+                    # Get A_m slice at the observed value
+                    A_m = self.A[m]
+                    # A_m[obs_idx] has shape (dim_f1, dim_f2, ...) for dep_factors
+                    A_obs = A_m[obs_idx]
+
+                    # Contract with beliefs of all OTHER dependent factors
+                    result = A_obs
+                    dep_list = list(dep_factors)
+                    f_pos = dep_list.index(f)
+
+                    # Contract from last to first, skipping factor f
+                    for i in reversed(range(len(dep_list))):
+                        if i == f_pos:
+                            continue
+                        result = np.tensordot(result, qs[dep_list[i]], axes=([i], [0]))
+
+                    # result is now 1D with shape (dim_f,)
+                    log_likelihood += _log_stable(np.maximum(result, 1e-16))
+
+                # Update: q(s_f) ∝ prior(s_f) * exp(log_likelihood)
+                log_q = _log_stable(prior[f]) + log_likelihood
+                log_q -= log_q.max()
+                qs[f] = np.exp(log_q)
+                qs[f] /= qs[f].sum()
+
+            # Check convergence
+            max_delta = max(np.max(np.abs(qs[f] - qs_old[f])) for f in range(num_factors))
+            if max_delta < 1e-6:
+                break
+
+        return qs
+
+    def _compute_efe(self, beliefs: list[np.ndarray]) -> np.ndarray:
+        """
+        Compute negative expected free energy for each action.
+
+        For each action a:
+        1. Predict next state: q(s'_f) = B_f[:,:,a] @ q(s_f)
+        2. Predict observations: q(o_m) = A_m contracted with q(s'_{deps_m})
+        3. Pragmatic value: sum_m q(o_m) . C_m  (preference satisfaction)
+        4. Epistemic value: H[q(o_m)] - E_q(o)[H[P(o|s')]]  (info gain)
+
+        Returns: array of shape (NUM_ACTIONS,) with neg_efe per action
+        """
+        neg_efe = np.zeros(NUM_ACTIONS)
+
+        for a in range(NUM_ACTIONS):
+            # 1. Predict next states
+            qs_next = []
+            for f in range(len(beliefs)):
+                T = self.B[f][:, :, a]  # (n_states, n_states)
+                q_next_f = T @ beliefs[f]
+                q_next_f /= q_next_f.sum() + 1e-16
+                qs_next.append(q_next_f)
+
+            # 2-4. Accumulate EFE terms across observation modalities
+            pragmatic = 0.0
+            epistemic = 0.0
+
+            for m in range(len(self.A)):
+                dep_factors = A_DEPENDENCIES[m]
+
+                # Predicted observation: q(o_m) = A_m contracted with predicted beliefs
+                qo_m = _factor_dot(self.A[m], qs_next, dep_factors)
+                qo_m = np.maximum(qo_m, 1e-16)
+                qo_m /= qo_m.sum()
+
+                # Pragmatic value: q(o) . C
+                if self.config.use_utility:
+                    pragmatic += np.dot(qo_m, self.C[m])
+
+                # Epistemic value (state info gain):
+                # H[q(o)] - E_q(s')[H[P(o|s')]]
+                if self.config.use_states_info_gain:
+                    # H[q(o)] = entropy of predicted observations
+                    H_qo = -np.sum(qo_m * _log_stable(qo_m))
+
+                    # E_q(s')[H[P(o|s')]] = expected conditional entropy
+                    # For each state config, compute H[P(o|s)] weighted by q(s)
+                    A_m = self.A[m]
+                    # We need to compute: sum over states of q(states) * H[A_m[:, states]]
+                    # Use the outer product of beliefs for the dependent factors
+                    dep_beliefs = [qs_next[f] for f in dep_factors]
+
+                    # Compute entropy of each column of A
+                    # A_m has shape (num_obs, d1, d2, ...) for dep factors
+                    H_A = -np.sum(A_m * _log_stable(A_m), axis=0)
+                    # H_A has shape (d1, d2, ...) — entropy for each state combination
+
+                    # Weight by joint belief (outer product of marginals)
+                    expected_H = H_A
+                    for i in reversed(range(len(dep_factors))):
+                        expected_H = np.tensordot(expected_H, dep_beliefs[i], axes=([i], [0]))
+                    # expected_H is now scalar
+
+                    epistemic += H_qo - float(expected_H)
+
+            neg_efe[a] = pragmatic + epistemic
+
+        return neg_efe
 
     def step(
         self,
@@ -449,37 +568,34 @@ class ActiveInferenceAgent:
         Returns:
             (action_name, info_dict) where info contains beliefs, EFE, etc.
         """
-        obs = self._discretize_obs(correct, response_time_ms, explanation_quality, confidence)
+        obs_indices = self._discretize_obs(correct, response_time_ms, explanation_quality, confidence)
 
         # Set EI belief to known value (we chose the problem)
         self.set_ei_belief(ei_value)
 
-        # Compute empirical prior from beliefs and previous action
-        if self._step_count == 0:
-            prior = [d[None, :] for d in self.D]
-        else:
-            prior = self._beliefs
+        # Compute empirical prior
+        prior = [d.copy() for d in self.D] if self._step_count == 0 else self._beliefs
 
         # Infer posterior beliefs
-        qs = self._agent.infer_states(obs, empirical_prior=prior)
-        # qs is list of arrays with shape (batch, time, num_states_f)
-        # Extract the latest timestep
-        self._beliefs = [q[:, -1, :] for q in qs]
+        self._beliefs = self._infer_states(obs_indices, prior)
 
-        # Evaluate policies and compute EFE
-        q_pi, G = self._agent.infer_policies(qs)
+        # Compute EFE for each action
+        neg_efe = self._compute_efe(self._beliefs)
 
-        # Select action (rng_key needs batch dim for vmapped agent)
-        self._rng_key, subkey = jax.random.split(self._rng_key)
-        action_idx = self._agent.sample_action(q_pi, rng_key=subkey[None, :])
-        action_int = int(action_idx[0, 0])
+        # Policy posterior via softmax
+        q_pi = _scipy_softmax(self.config.gamma * neg_efe)
+
+        # Select action
+        if self.config.action_selection == "deterministic":
+            action_int = int(np.argmax(q_pi))
+        else:
+            action_int = int(self._rng.choice(NUM_ACTIONS, p=q_pi))
         action_name = ACTIONS[action_int]
 
-        # Compute epistemic vs pragmatic decomposition for interpretability
-        info = self._build_info(q_pi, G, action_int)
+        # Build info dict
+        info = self._build_info(q_pi, neg_efe, action_int)
 
         # Update generative model from observation (Fix 10)
-        obs_indices = [int(o[0]) for o in obs]
         self.update_model(obs_indices, action_int)
 
         # Update prior for next step using transition model
@@ -491,17 +607,14 @@ class ActiveInferenceAgent:
     def _update_prior(self, action_idx: int):
         """Update beliefs through the transition model for the next step."""
         new_beliefs = []
-        for f, (belief_f, B_f) in enumerate(zip(self._beliefs, self.B)):
-            # B_f[:, :, action] @ belief = new prior
-            T = B_f[:, :, action_idx]  # (n_states, n_states)
-            # belief_f shape: (batch, n_states)
-            new_prior = jnp.matmul(belief_f, T.T)  # (batch, n_states)
-            # Normalize
-            new_prior = new_prior / jnp.sum(new_prior, axis=-1, keepdims=True)
+        for f in range(len(self._beliefs)):
+            T = self.B[f][:, :, action_idx]
+            new_prior = T @ self._beliefs[f]
+            new_prior /= new_prior.sum() + 1e-16
             new_beliefs.append(new_prior)
         self._beliefs = new_beliefs
 
-    def _build_info(self, q_pi, G, action_idx: int) -> dict:
+    def _build_info(self, q_pi, neg_efe, action_idx: int) -> dict:
         """Build interpretable info dict from inference results."""
         dim_names = ["rs", "ss", "schema", "wm", "affect", "ei_bin"]
         dim_labels = {
@@ -516,18 +629,15 @@ class ActiveInferenceAgent:
         beliefs_map = {}
         beliefs_entropy = {}
         for i, (name, belief) in enumerate(zip(dim_names, self._beliefs)):
-            b = np.array(belief[0])
+            b = belief
             map_idx = int(np.argmax(b))
             beliefs_map[name] = dim_labels[name][map_idx]
             b_safe = np.clip(b, 1e-10, 1.0)
             entropy = -np.sum(b_safe * np.log(b_safe))
             beliefs_entropy[name] = float(entropy)
 
-        q_pi_np = np.array(q_pi[0])
-        policy_probs = {ACTIONS[i]: float(q_pi_np[i]) for i in range(NUM_ACTIONS)}
-
-        G_np = np.array(G[0])
-        efe_values = {ACTIONS[i]: float(G_np[i]) for i in range(NUM_ACTIONS)}
+        policy_probs = {ACTIONS[i]: float(q_pi[i]) for i in range(NUM_ACTIONS)}
+        efe_values = {ACTIONS[i]: float(neg_efe[i]) for i in range(NUM_ACTIONS)}
 
         total_entropy = sum(beliefs_entropy.values())
         max_entropy = sum(np.log(d) for d in [5, 4, 3, 3, 3, 3])
@@ -547,49 +657,31 @@ class ActiveInferenceAgent:
         """Get current belief state as readable dict."""
         dim_names = ["rs", "ss", "schema", "wm", "affect", "ei_bin"]
         return {
-            name: np.array(belief[0]).tolist()
+            name: belief.tolist()
             for name, belief in zip(dim_names, self._beliefs)
         }
 
     def update_model(self, obs_indices: list, action_idx: int):
         """
-        Update A and B Dirichlet concentration parameters from observation.
+        Update A Dirichlet concentration parameters from observation.
 
         Implements online model learning (Friston et al., 2017):
         - A update: increment (inferred_state, observation) co-occurrences
-        - B update: increment (prev_state, action, curr_state) transitions
         - Learning rate decays with experience (early obs have larger updates)
         """
         lr = self._model_lr / (1.0 + self._step_count * 0.05)
 
-        # A matrix update: for each modality, weight the concentration
-        # by the current posterior beliefs over the relevant state factors
         for m, obs_idx in enumerate(obs_indices):
             dep_factors = A_DEPENDENCIES[m]
-            # Get MAP state for dependent factors
-            for f_idx in dep_factors:
-                belief = np.array(self._beliefs[f_idx][0])
-                map_state = int(np.argmax(belief))
-                # Increment the concentration parameter for this (state, obs) pair
-                # This is a simplified Hebbian update on the generative model
-                A_m = np.array(self.A[m])
-                # Build index into A matrix
-                idx = [obs_idx] + [
-                    int(np.argmax(np.array(self._beliefs[f][0])))
-                    for f in dep_factors
-                ]
-                A_m[tuple(idx)] += lr
-                # Renormalize along observation axis
-                norm_idx = [slice(None)] + [
-                    int(np.argmax(np.array(self._beliefs[f][0])))
-                    for f in dep_factors
-                ]
-                col = A_m[tuple(norm_idx)]
-                A_m[tuple(norm_idx)] = col / col.sum()
-                self.A[m] = jnp.array(A_m, dtype=jnp.float32)
-                break  # One update per modality per step
+            # Build index into A matrix using MAP states of dependent factors
+            idx = [obs_idx] + [int(np.argmax(self._beliefs[f])) for f in dep_factors]
+            self.A[m][tuple(idx)] += lr
+            # Renormalize along observation axis
+            norm_idx = [slice(None)] + [int(np.argmax(self._beliefs[f])) for f in dep_factors]
+            col = self.A[m][tuple(norm_idx)]
+            self.A[m][tuple(norm_idx)] = col / col.sum()
 
     def reset(self):
         """Reset beliefs to uniform prior."""
-        self._beliefs = [d[None, :] for d in self.D]
+        self._beliefs = [d.copy() for d in self.D]
         self._step_count = 0
