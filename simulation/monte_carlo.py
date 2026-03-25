@@ -59,6 +59,25 @@ class TrajectoryResult:
 # Policies
 # ==========================================
 
+class _MetaFunctionState:
+    """Tracks per-skill rolling accuracy for the meta-function policy."""
+
+    def __init__(self):
+        self._recent_correct: dict[str, list[bool]] = {s: [] for s in SKILLS}
+
+    def record(self, skill: str, correct: bool):
+        history = self._recent_correct[skill]
+        history.append(correct)
+        if len(history) > 5:
+            history.pop(0)
+
+    def rolling_accuracy(self, skill: str) -> float:
+        history = self._recent_correct[skill]
+        if not history:
+            return 1.0  # No data yet — assume OK
+        return sum(history) / len(history)
+
+
 def _policy_meta_function(agent: SimulatedAgent, rng: np.random.Generator) -> tuple:
     """
     Meta-function policy: use the rule-based action selection.
@@ -74,6 +93,10 @@ def _policy_meta_function(agent: SimulatedAgent, rng: np.random.Generator) -> tu
     best_action = None
     best_urgency = -1
 
+    # Get rolling accuracy tracker (attached to agent for persistence)
+    if not hasattr(agent, '_mf_state'):
+        agent._mf_state = _MetaFunctionState()
+
     for skill in SKILLS:
         rs = state.rs[skill]
         ss = state.ss[skill]
@@ -88,25 +111,29 @@ def _policy_meta_function(agent: SimulatedAgent, rng: np.random.Generator) -> tu
                 if d < 0.4:
                     low_discrim_pairs.append((pair, d))
 
-        # Schema adequacy for discriminability check
-        schema_adequate = {s: state.schema.get(s, 0) >= 1 for s in SKILLS}
+        # Schema adequacy for discriminability check (continuous: >= 0.33 ~ partial)
+        schema_adequate = {s: state.schema.get(s, 0) >= 0.33 for s in SKILLS}
 
-        # Determine appropriate tier based on schema level
-        tier = min(7, max(0, schema * 2 + 1))
+        # Determine appropriate tier based on continuous schema level
+        tier = min(7, max(0, int(schema * 4 + 1)))
         base_ei = TIER_BASE_EI.get(tier, 5)
         student_schemas = {s: state.schema[s] for s in SKILLS}
         eff_ei = effective_ei(base_ei, student_schemas, [skill])
+
+        # Continuous schema → discrete label
+        schema_label = "none" if schema < 0.33 else "partial" if schema < 0.67 else "full"
 
         action = select_action(
             skill=skill,
             rs_label=rs_label(rs),
             ss_label=ss_label(ss),
-            schema_label=["none", "partial", "full"][schema],
+            schema_label=schema_label,
             wm_label=wm_label(wm),
             affect=state.affect,
             effective_ei=eff_ei,
             low_discrim_pairs=low_discrim_pairs,
             schema_adequate_for=schema_adequate,
+            recent_accuracy=agent._mf_state.rolling_accuracy(skill),
         )
 
         # Urgency heuristic: prioritize safety actions, then learning actions
@@ -197,9 +224,9 @@ def _policy_fixed_curriculum(
     # Curriculum order
     curriculum = SKILLS  # Already in pedagogical order
 
-    # Find current position: first skill not yet "mastered" (schema < 2)
+    # Find current position: first skill not yet "mastered" (schema < 0.85)
     for skill in curriculum:
-        if state.schema[skill] < 2 or state.rs[skill] < 0.5:
+        if state.schema[skill] < 0.85 or state.rs[skill] < 0.5:
             break
     else:
         skill = curriculum[-1]  # All mastered, keep practicing last
@@ -224,11 +251,76 @@ def _policy_fixed_curriculum(
     return skill, action, tier, None
 
 
+class _ActiveInferencePolicy:
+    """
+    Active inference policy: uses pymdp EFE minimization.
+
+    Instantiated per-trajectory so the agent learns across problems
+    within a trajectory but resets between trajectories.
+    """
+
+    def __init__(self):
+        try:
+            from active_inference.pomdp import ActiveInferenceAgent
+            self.ai_agent = ActiveInferenceAgent()
+        except Exception as e:
+            raise RuntimeError(f"Cannot instantiate ActiveInferenceAgent: {e}")
+        self._last_obs = None
+
+    def __call__(self, agent: SimulatedAgent, rng: np.random.Generator) -> tuple:
+        state = agent.state
+
+        # Find skill with lowest RS (most in need of attention)
+        min_rs_skill = min(SKILLS, key=lambda s: state.rs[s])
+
+        if self._last_obs is None:
+            # First problem: use diagnostic_probe on lowest-RS skill
+            skill_tier = {"A-Comm": 1, "M-Comm": 1, "A-Assoc": 2, "M-Assoc": 2,
+                          "A-Assoc-Rev": 2, "M-Assoc-Rev": 2, "Dist-Right": 4,
+                          "Dist-Left": 4, "Factor": 4, "Sub-Def": 5, "Div-Def": 5}
+            tier = skill_tier.get(min_rs_skill, 3)
+            return min_rs_skill, "diagnostic_probe", tier, None
+
+        # Use last observation to get active inference action
+        obs = self._last_obs
+        schema = state.schema[obs.skill]
+        tier = min(7, max(0, int(schema * 4 + 1)))
+        base_ei = TIER_BASE_EI.get(tier, 5)
+        student_schemas = {s: state.schema[s] for s in SKILLS}
+        eff_ei = effective_ei(base_ei, student_schemas, [obs.skill])
+
+        action_name, info = self.ai_agent.step(
+            correct=obs.correct,
+            response_time_ms=obs.response_time_ms,
+            explanation_quality=obs.explanation_quality,
+            confidence=obs.confidence_report,
+            ei_value=eff_ei,
+        )
+
+        # Select skill with lowest RS as target
+        skill = min_rs_skill
+        schema_val = state.schema[skill]
+        action_tier = min(7, max(0, int(schema_val * 4 + 1)))
+
+        interleave_pair = None
+        if action_name == "interleave":
+            pairs = [p for p in CONFUSABLE_PAIRS if skill in p]
+            if pairs:
+                interleave_pair = pairs[int(rng.integers(0, len(pairs)))]
+
+        return skill, action_name, action_tier, interleave_pair
+
+    def observe(self, obs):
+        """Store latest observation for next step."""
+        self._last_obs = obs
+
+
 POLICIES = {
     "meta_function": _policy_meta_function,
     "random": _policy_random,
     "fsrs_only": _policy_fsrs_only,
     "fixed_curriculum": _policy_fixed_curriculum,
+    "active_inference": _ActiveInferencePolicy,
 }
 
 
@@ -260,7 +352,15 @@ def run_session(
             action=action,
             tier=tier,
             interleave_pair=interleave_pair,
+            prompt_confidence=True,
         )
+
+        # Feed observation back to stateful policies
+        if hasattr(policy_fn, 'observe'):
+            policy_fn.observe(obs)
+        # Track rolling accuracy for meta_function policy
+        if hasattr(agent, '_mf_state'):
+            agent._mf_state.record(obs.skill, obs.correct)
 
         result.observations.append(obs)
         result.n_total += 1
@@ -298,7 +398,12 @@ def run_trajectory(
     """
     rng = np.random.default_rng(seed)
     agent = SimulatedAgent(learner_type, rng=rng)
-    policy_fn = POLICIES[policy_name]
+    policy_entry = POLICIES[policy_name]
+    # Class-based policies (e.g. ActiveInferencePolicy) are instantiated per-trajectory
+    if isinstance(policy_entry, type):
+        policy_fn = policy_entry()
+    else:
+        policy_fn = policy_entry
 
     result = TrajectoryResult(
         learner_type=learner_type.name,
@@ -374,5 +479,56 @@ def run_monte_carlo(
 
                 if completed % 20 == 0 or completed == total:
                     print(f"  [{completed}/{total}] {lt.name} x {policy_name}")
+
+    return results
+
+
+def run_population_monte_carlo(
+    n_students: int = 500,
+    policy_names: list[str] = None,
+    n_sessions: int = 5,
+    problems_per_session: int = 20,
+    hours_between_sessions: float = 24.0,
+    base_seed: int = 42,
+) -> list[TrajectoryResult]:
+    """
+    Population-level Monte Carlo: sample n_students from empirical distributions.
+
+    Unlike run_monte_carlo() which uses fixed archetypes, this samples
+    diverse learner profiles from the empirically grounded distributions
+    in sample_learner_type(). Use this for research claims requiring
+    statistical stability.
+
+    Args:
+        n_students: Number of students to sample
+        policy_names: Policies to compare (default: all)
+        n_sessions: Sessions per trajectory
+        problems_per_session: Problems per session
+        hours_between_sessions: Gap between sessions
+        base_seed: Base seed for reproducibility
+
+    Returns:
+        List of TrajectoryResult, one per (student, policy)
+    """
+    if policy_names is None:
+        policy_names = list(POLICIES.keys())
+
+    rng = np.random.default_rng(base_seed)
+    results = []
+
+    for i in range(n_students):
+        lt = sample_learner_type(rng, name=f"pop_{i:04d}")
+        for policy_name in policy_names:
+            trajectory = run_trajectory(
+                learner_type=lt,
+                policy_name=policy_name,
+                n_sessions=n_sessions,
+                problems_per_session=problems_per_session,
+                hours_between_sessions=hours_between_sessions,
+                seed=base_seed + i,
+            )
+            results.append(trajectory)
+        if (i + 1) % 50 == 0:
+            print(f"  [{i + 1}/{n_students}] students completed")
 
     return results

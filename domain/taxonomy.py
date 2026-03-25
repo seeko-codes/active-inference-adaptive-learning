@@ -104,10 +104,9 @@ def effective_ei(base_ei, student_schemas, relevant_skills):
     reduction = 0
     for skill in relevant_skills:
         level = student_schemas.get(skill, 0)
-        if level == 2:  # Full schema
-            reduction += SCHEMA_REDUCTION.get(skill, 0)
-        elif level == 1:  # Partial schema
-            reduction += SCHEMA_REDUCTION.get(skill, 0) * 0.5
+        # Continuous schema: reduction proportional to schema level
+        # level=1.0 (full) → full reduction, level=0.5 (partial) → half, level=0.0 → none
+        reduction += SCHEMA_REDUCTION.get(skill, 0) * level
     return max(1, base_ei - reduction)
 
 

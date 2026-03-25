@@ -201,18 +201,20 @@ def parameter_recovery(
             acc = sum(1 for o in skill_obs if o.correct) / len(skill_obs)
             inferred_rs = acc  # Crude but informative
 
-            # Infer schema from explanation quality
+            # Infer schema from explanation quality (continuous comparison)
             mean_quality = np.mean([o.explanation_quality for o in skill_obs])
+            # Discretize both true and inferred for classification accuracy
+            true_schema_bin = 0 if true_schema < 0.33 else 1 if true_schema < 0.67 else 2
             if mean_quality > 0.6:
-                inferred_schema = 2
+                inferred_schema_bin = 2
             elif mean_quality > 0.35:
-                inferred_schema = 1
+                inferred_schema_bin = 1
             else:
-                inferred_schema = 0
+                inferred_schema_bin = 0
 
             # Record errors
             rs_errors.append(abs(true_rs - inferred_rs))
-            schema_matches.append(1 if inferred_schema == true_schema else 0)
+            schema_matches.append(1 if inferred_schema_bin == true_schema_bin else 0)
 
     return {
         "rs_mae": np.mean(rs_errors) if rs_errors else float("nan"),
@@ -280,11 +282,14 @@ def run_ablation(
                         schema = state.schema[skill]
                         wm = state.wm_utilization
 
+                        # Continuous schema → discrete label
+                        schema_label = "none" if schema < 0.33 else "partial" if schema < 0.67 else "full"
+
                         kwargs = {
                             "skill": skill,
                             "rs_label": rs_label(rs),
                             "ss_label": ss_label(ss),
-                            "schema_label": ["none", "partial", "full"][schema],
+                            "schema_label": schema_label,
                             "wm_label": ("low" if wm < 0.33 else "high" if wm > 0.67 else "moderate"),
                             "affect": state.affect,
                             "effective_ei": 5.0,
@@ -298,7 +303,7 @@ def run_ablation(
                         from meta_function import select_action
                         action_sel = select_action(**kwargs)
 
-                        tier = min(7, max(0, schema * 2 + 1))
+                        tier = min(7, max(0, int(schema * 4 + 1)))
                         agent.present_problem(
                             skill=skill,
                             action=action_sel.action,

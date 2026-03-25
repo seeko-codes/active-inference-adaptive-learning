@@ -42,6 +42,7 @@ def select_action(
     effective_ei: float,
     low_discrim_pairs: list = None,
     schema_adequate_for: dict = None,
+    recent_accuracy: float = 1.0,
 ) -> ActionSelection:
     """
     Select pedagogical action from joint state.
@@ -86,12 +87,12 @@ def select_action(
         )
 
     # ==========================================
-    # Priority 3: Don't overload
+    # Priority 3: Don't overload (only if load is extraneous, not germane)
     # ==========================================
-    if wm_label == "high":
+    if wm_label == "high" and recent_accuracy < 0.4:
         return ActionSelection(
             action="reduce_load",
-            reason="High WM load: reducing difficulty to prevent overload",
+            reason=f"High WM load + low accuracy ({recent_accuracy:.0%}): extraneous load, reducing",
             skill=skill,
         )
 
