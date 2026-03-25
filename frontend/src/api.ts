@@ -59,6 +59,10 @@ export async function startSession(studentId: string): Promise<StartResponse> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ student_id: studentId }),
   });
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(`Start session failed (${res.status}): ${text}`);
+  }
   return res.json();
 }
 
@@ -82,5 +86,9 @@ export async function submitResponse(
       confidence,
     }),
   });
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(`Submit response failed (${res.status}): ${text}`);
+  }
   return res.json();
 }
