@@ -1,0 +1,95 @@
+{
+  "policy_summary": {
+    "fixed_curriculum": {
+      "n": 50000,
+      "mean_mastery": 0.27799,
+      "std_mastery": 0.0884,
+      "median_mastery": 0.27297,
+      "mean_accuracy": 0.7083,
+      "pct_frustrated": 0.193,
+      "pct_engaged": 0.7815,
+      "pct_bored": 0.0255
+    },
+    "fsrs_only": {
+      "n": 50000,
+      "mean_mastery": 0.33905,
+      "std_mastery": 0.11387,
+      "median_mastery": 0.32822,
+      "mean_accuracy": 0.3256,
+      "pct_frustrated": 0.5449,
+      "pct_engaged": 0.454,
+      "pct_bored": 0.001
+    },
+    "meta_function": {
+      "n": 50000,
+      "mean_mastery": 0.35003,
+      "std_mastery": 0.10395,
+      "median_mastery": 0.353,
+      "mean_accuracy": 0.5055,
+      "pct_frustrated": 0.1422,
+      "pct_engaged": 0.8541,
+      "pct_bored": 0.0037
+    },
+    "random": {
+      "n": 50000,
+      "mean_mastery": 0.31863,
+      "std_mastery": 0.09641,
+      "median_mastery": 0.31568,
+      "mean_accuracy": 0.4809,
+      "pct_frustrated": 0.3329,
+      "pct_engaged": 0.6599,
+      "pct_bored": 0.0071
+    }
+  },
+  "trajectory_by_policy": {
+    "fixed_curriculum": [
+      0.28034,
+      0.30237,
+      0.27484,
+      0.287,
+      0.26912,
+      0.28104,
+      0.26631,
+      0.2784,
+      0.26533,
+      0.27799
+    ],
+    "fsrs_only": [
+      0.28034,
+      0.33198,
+      0.28092,
+      0.32887,
+      0.28409,
+      0.33053,
+      0.28884,
+      0.33428,
+      0.29469,
+      0.33905
+    ],
+    "meta_function": [
+      0.28034,
+      0.3345,
+      0.28232,
+      0.33363,
+      0.28669,
+      0.33728,
+      0.29253,
+      0.34331,
+      0.29954,
+      0.35003
+    ],
+    "random": [
+      0.28034,
+      0.31127,
+      0.28184,
+      0.30831,
+      0.28555,
+      0.31069,
+      0.28965,
+      0.31441,
+      0.29405,
+      0.31863
+    ]
+  },
+  "total_trajectories": 200000
+}

@@ -86,6 +86,13 @@ AFFECT_BINS = {
     },
 }
 
+# Element Interactivity bin (per-problem context, not per-student state)
+EI_BINS = {
+    "labels": ["low", "medium", "high"],
+    "boundaries": [0.0, 3.5, 6.5, 10.0],
+    "n": 3,
+}
+
 # Discriminability per pair
 DISCRIM_BINS = {
     "labels": ["low", "moderate", "high"],
@@ -133,6 +140,10 @@ def discretize_affect(affect: str) -> int:
 
 def discretize_discrim(discrim: float) -> int:
     return discretize(discrim, DISCRIM_BINS["boundaries"])
+
+
+def discretize_ei(ei: float) -> int:
+    return discretize(ei, EI_BINS["boundaries"])
 
 
 def rs_label(rs: float) -> str:

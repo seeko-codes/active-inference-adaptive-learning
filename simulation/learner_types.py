@@ -63,14 +63,17 @@ class CognitiveParams:
     response_time_variance: float = 0.3  # Coefficient of variation for response times
     explanation_quality: float = 0.5     # Baseline explanation quality [0, 1]
 
+    # --- Metacognition ---
+    metacognitive_bias: float = 0.0      # Positive = overconfident, negative = underconfident
+
     def get_initial_rs(self, skill: str) -> float:
         return self.initial_rs.get(skill, 0.1)
 
     def get_initial_ss(self, skill: str) -> float:
         return self.initial_ss.get(skill, 0.5)
 
-    def get_initial_schema(self, skill: str) -> int:
-        return self.initial_schema.get(skill, 0)
+    def get_initial_schema(self, skill: str) -> float:
+        return self.initial_schema.get(skill, 0.0)
 
 
 @dataclass
@@ -102,7 +105,7 @@ def _make_novice() -> LearnerType:
         params=CognitiveParams(
             initial_rs={s: 0.05 for s in SKILLS},
             initial_ss={s: 0.1 for s in SKILLS},
-            initial_schema={s: 0 for s in SKILLS},
+            initial_schema={s: 0.0 for s in SKILLS},
             wm_capacity=4.0,
             wm_recovery_rate=0.25,
             schema_formation_rate=0.15,
@@ -116,6 +119,7 @@ def _make_novice() -> LearnerType:
             base_response_time=12000,
             response_time_variance=0.4,
             explanation_quality=0.3,
+            metacognitive_bias=0.0,
         ),
         prevalence=1.5,  # Common
     )
@@ -135,7 +139,7 @@ def _make_fast_learner() -> LearnerType:
         params=CognitiveParams(
             initial_rs={s: 0.05 for s in SKILLS},
             initial_ss={s: 0.1 for s in SKILLS},
-            initial_schema={s: 0 for s in SKILLS},
+            initial_schema={s: 0.0 for s in SKILLS},
             wm_capacity=6.0,
             wm_recovery_rate=0.4,
             schema_formation_rate=0.5,
@@ -149,6 +153,7 @@ def _make_fast_learner() -> LearnerType:
             base_response_time=5000,
             response_time_variance=0.2,
             explanation_quality=0.7,
+            metacognitive_bias=0.05,
         ),
         prevalence=0.8,
     )
@@ -171,7 +176,7 @@ def _make_partial_knowledge() -> LearnerType:
         params=CognitiveParams(
             initial_rs={s: (0.7 if s in known else 0.1) for s in SKILLS},
             initial_ss={s: (10.0 if s in known else 0.5) for s in SKILLS},
-            initial_schema={s: (2 if s in known else 0) for s in SKILLS},
+            initial_schema={s: (1.0 if s in known else 0.0) for s in SKILLS},
             wm_capacity=5.0,
             wm_recovery_rate=0.3,
             schema_formation_rate=0.3,
@@ -185,6 +190,7 @@ def _make_partial_knowledge() -> LearnerType:
             base_response_time=8000,
             response_time_variance=0.3,
             explanation_quality=0.5,
+            metacognitive_bias=0.0,
         ),
         prevalence=1.5,  # Very common
     )
@@ -204,7 +210,7 @@ def _make_forgetful() -> LearnerType:
         params=CognitiveParams(
             initial_rs={s: 0.3 for s in SKILLS},
             initial_ss={s: 1.0 for s in SKILLS},
-            initial_schema={s: 1 for s in SKILLS},
+            initial_schema={s: 0.5 for s in SKILLS},
             wm_capacity=5.0,
             wm_recovery_rate=0.3,
             schema_formation_rate=0.3,
@@ -218,6 +224,7 @@ def _make_forgetful() -> LearnerType:
             base_response_time=9000,
             response_time_variance=0.3,
             explanation_quality=0.4,
+            metacognitive_bias=0.0,
         ),
         prevalence=1.0,
     )
@@ -238,7 +245,7 @@ def _make_low_wm() -> LearnerType:
         params=CognitiveParams(
             initial_rs={s: 0.4 for s in SKILLS},
             initial_ss={s: 3.0 for s in SKILLS},
-            initial_schema={s: 1 for s in SKILLS},
+            initial_schema={s: 0.5 for s in SKILLS},
             wm_capacity=3.0,
             wm_recovery_rate=0.2,
             schema_formation_rate=0.2,
@@ -252,6 +259,7 @@ def _make_low_wm() -> LearnerType:
             base_response_time=14000,
             response_time_variance=0.5,
             explanation_quality=0.35,
+            metacognitive_bias=-0.05,
         ),
         prevalence=1.0,
     )
@@ -272,7 +280,7 @@ def _make_anxious() -> LearnerType:
         params=CognitiveParams(
             initial_rs={s: 0.5 for s in SKILLS},
             initial_ss={s: 5.0 for s in SKILLS},
-            initial_schema={s: 1 for s in SKILLS},
+            initial_schema={s: 0.5 for s in SKILLS},
             wm_capacity=4.5,
             wm_recovery_rate=0.15,
             schema_formation_rate=0.25,
@@ -286,6 +294,7 @@ def _make_anxious() -> LearnerType:
             base_response_time=11000,
             response_time_variance=0.5,
             explanation_quality=0.4,
+            metacognitive_bias=-0.2,
         ),
         prevalence=1.0,
     )
@@ -306,7 +315,7 @@ def _make_overconfident() -> LearnerType:
         params=CognitiveParams(
             initial_rs={s: 0.4 for s in SKILLS},
             initial_ss={s: 2.0 for s in SKILLS},
-            initial_schema={s: 1 for s in SKILLS},
+            initial_schema={s: 0.5 for s in SKILLS},
             wm_capacity=5.0,
             wm_recovery_rate=0.35,
             schema_formation_rate=0.25,
@@ -320,6 +329,7 @@ def _make_overconfident() -> LearnerType:
             base_response_time=5000,         # Fast but careless
             response_time_variance=0.2,
             explanation_quality=0.5,
+            metacognitive_bias=0.25,
         ),
         prevalence=0.8,
     )
@@ -339,7 +349,7 @@ def _make_advanced() -> LearnerType:
         params=CognitiveParams(
             initial_rs={s: 0.8 for s in SKILLS},
             initial_ss={s: 20.0 for s in SKILLS},
-            initial_schema={s: 2 for s in SKILLS},
+            initial_schema={s: 1.0 for s in SKILLS},
             wm_capacity=6.0,
             wm_recovery_rate=0.4,
             schema_formation_rate=0.5,
@@ -353,6 +363,7 @@ def _make_advanced() -> LearnerType:
             base_response_time=4000,
             response_time_variance=0.15,
             explanation_quality=0.8,
+            metacognitive_bias=0.1,
         ),
         prevalence=0.5,
     )
@@ -394,39 +405,71 @@ PARAM_RANGES = {
 
 # Prior knowledge levels for sampling
 KNOWLEDGE_LEVELS = {
-    "zero": {"rs": 0.05, "ss": 0.1, "schema": 0},
-    "exposure": {"rs": 0.2, "ss": 1.0, "schema": 0},
-    "fragile": {"rs": 0.4, "ss": 3.0, "schema": 1},
-    "solid": {"rs": 0.7, "ss": 10.0, "schema": 2},
-    "mastered": {"rs": 0.9, "ss": 30.0, "schema": 2},
+    "zero": {"rs": 0.05, "ss": 0.1, "schema": 0.0},
+    "exposure": {"rs": 0.2, "ss": 1.0, "schema": 0.1},
+    "fragile": {"rs": 0.4, "ss": 3.0, "schema": 0.5},
+    "solid": {"rs": 0.7, "ss": 10.0, "schema": 0.85},
+    "mastered": {"rs": 0.9, "ss": 30.0, "schema": 1.0},
 }
 
 
 def sample_learner_params(rng: Optional[np.random.Generator] = None) -> CognitiveParams:
     """
-    Sample a random learner from the continuous parameter space.
+    Sample a random learner from empirically grounded distributions.
 
-    Uses uniform sampling within validated ranges. The ranges are
-    chosen to cover all archetypes while excluding degenerate configurations.
+    Parameter distributions and correlations based on:
+    - WM capacity: Cowan (2001), Normal(4.0, 1.5)
+    - Math anxiety prevalence: Ashcraft (2002), ~20%
+    - Learning rate–WM correlation: r ≈ 0.5
+    - Forgetting rate: FSRS empirical, log-normal
 
     Args:
         rng: NumPy random generator (for reproducibility)
 
     Returns:
-        CognitiveParams with randomly sampled values
+        CognitiveParams with empirically sampled values
     """
     if rng is None:
         rng = np.random.default_rng()
 
-    # Sample cognitive parameters
-    params = {}
-    for param, (low, high) in PARAM_RANGES.items():
-        params[param] = rng.uniform(low, high)
+    # WM capacity: Normal(4.0, 1.5), clamp to [2, 7] — Cowan (2001)
+    wm_capacity_raw = np.clip(rng.normal(4.0, 1.5), 2.0, 7.0)
 
-    # Sample prior knowledge per skill
-    # Each skill independently gets a knowledge level
+    # Math anxiety: 20% prevalence — Ashcraft (2002)
+    # Mechanism: anxiety consumes central executive, reducing effective WM by ~1.5 items
+    has_math_anxiety = rng.random() < 0.20
+    anxiety_wm_reduction = rng.uniform(0.8, 1.5) if has_math_anxiety else 0.0
+    effective_wm = max(1.5, wm_capacity_raw - anxiety_wm_reduction)
+
+    # Learning rate: correlated with WM (r ≈ 0.5)
+    wm_z = (wm_capacity_raw - 4.0) / 1.5  # standardize on raw (not anxiety-reduced)
+    schema_formation_rate = np.clip(rng.normal(0.3 + 0.1 * wm_z, 0.1), 0.05, 0.65)
+    ss_growth_rate = np.clip(rng.normal(1.0 + 0.15 * wm_z, 0.2), 0.3, 1.8)
+
+    # Forgetting rate: log-normal (FSRS empirical data)
+    forgetting_rate = np.clip(rng.lognormal(0.0, 0.35), 0.4, 2.5)
+
+    # Frustration threshold: inversely related to anxiety
+    frustration_threshold = np.clip(
+        rng.normal(0.7 - 0.2 * has_math_anxiety, 0.1), 0.35, 0.9
+    )
+
+    # Metacognitive bias: Normal(0, 0.2), positive = overconfident
+    metacognitive_bias = np.clip(rng.normal(0, 0.2), -0.5, 0.5)
+
+    # Remaining parameters: normal distributions centered on population means
+    wm_recovery_rate = np.clip(rng.normal(0.3, 0.1), 0.1, 0.5)
+    rs_recovery_rate = np.clip(rng.normal(1.0, 0.2), 0.5, 1.5)
+    boredom_threshold = np.clip(rng.normal(0.25, 0.08), 0.1, 0.45)
+    affect_inertia = np.clip(rng.normal(0.5, 0.15), 0.2, 0.8)
+    engagement_baseline = np.clip(rng.normal(0.6, 0.1), 0.3, 0.8)
+    base_response_time = np.clip(rng.normal(8000, 3000), 3000, 15000)
+    response_time_variance = np.clip(rng.normal(0.3, 0.1), 0.1, 0.6)
+    explanation_quality = np.clip(rng.normal(0.5, 0.15), 0.2, 0.9)
+
+    # Prior knowledge per skill (skewed toward less knowledge)
     level_names = list(KNOWLEDGE_LEVELS.keys())
-    level_probs = [0.3, 0.25, 0.2, 0.15, 0.1]  # Skewed toward less knowledge
+    level_probs = [0.3, 0.25, 0.2, 0.15, 0.1]
 
     initial_rs = {}
     initial_ss = {}
@@ -435,16 +478,28 @@ def sample_learner_params(rng: Optional[np.random.Generator] = None) -> Cognitiv
     for skill in SKILLS:
         level_name = rng.choice(level_names, p=level_probs)
         level = KNOWLEDGE_LEVELS[level_name]
-        # Add some noise to continuous values
         initial_rs[skill] = np.clip(level["rs"] + rng.normal(0, 0.05), 0.01, 0.99)
         initial_ss[skill] = max(0.1, level["ss"] * rng.lognormal(0, 0.3))
-        initial_schema[skill] = level["schema"]
+        initial_schema[skill] = np.clip(level["schema"] + rng.normal(0, 0.1), 0.0, 1.0)
 
     return CognitiveParams(
         initial_rs=initial_rs,
         initial_ss=initial_ss,
         initial_schema=initial_schema,
-        **params,
+        wm_capacity=effective_wm,
+        wm_recovery_rate=wm_recovery_rate,
+        schema_formation_rate=schema_formation_rate,
+        ss_growth_rate=ss_growth_rate,
+        rs_recovery_rate=rs_recovery_rate,
+        forgetting_rate=forgetting_rate,
+        frustration_threshold=frustration_threshold,
+        boredom_threshold=boredom_threshold,
+        affect_inertia=affect_inertia,
+        engagement_baseline=engagement_baseline,
+        base_response_time=base_response_time,
+        response_time_variance=response_time_variance,
+        explanation_quality=explanation_quality,
+        metacognitive_bias=metacognitive_bias,
     )
 
 

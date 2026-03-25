@@ -44,7 +44,7 @@ class GroundTruthState:
     # Per-skill states
     rs: dict = field(default_factory=dict)       # Retrievability [0, 1]
     ss: dict = field(default_factory=dict)       # Stability (days)
-    schema: dict = field(default_factory=dict)   # Schema level (0/1/2) — kept discrete
+    schema: dict = field(default_factory=dict)   # Schema level [0.0, 1.0] — continuous
 
     # Global states
     wm_utilization: float = 0.3    # Current WM load fraction [0, 1]
@@ -224,9 +224,8 @@ class SimulatedAgent:
         # Base probability from retrievability
         p_correct = rs
 
-        # Schema bonus: understanding helps beyond mere recall
-        schema_bonus = {0: 0.0, 1: 0.15, 2: 0.3}
-        p_correct += schema_bonus.get(schema, 0)
+        # Schema bonus: continuous [0.0, 1.0] → [0.0, 0.3] bonus
+        p_correct += schema * 0.3
 
         # WM penalty: overload degrades performance
         if wm_util > 0.7:
@@ -349,9 +348,9 @@ class SimulatedAgent:
         schema = self.state.schema[skill]
         base_quality = self.params.explanation_quality
 
-        # Schema drives explanation quality
-        schema_quality = {0: 0.2, 1: 0.5, 2: 0.85}
-        quality = (base_quality * 0.3 + schema_quality[schema] * 0.7)
+        # Schema drives explanation quality: continuous [0.0, 1.0] → [0.2, 0.85]
+        schema_quality = 0.2 + 0.65 * schema
+        quality = (base_quality * 0.3 + schema_quality * 0.7)
 
         # Incorrect answers have lower quality explanations
         if not correct:
@@ -363,12 +362,13 @@ class SimulatedAgent:
 
         quality = np.clip(quality, 0.0, 1.0)
 
-        # Word count: schema level affects verbosity
-        # None → short (no understanding to articulate)
-        # Partial → longer (trying to explain)
-        # Full → moderate (concise understanding)
-        word_counts = {0: 8, 1: 25, 2: 18}
-        mean_words = word_counts[schema]
+        # Word count: peaks at partial schema (trying to explain), concise at full
+        # schema=0 → 8 words, schema~0.5 → 25 words, schema=1.0 → 18 words
+        if schema < 0.5:
+            mean_words = 8 + (25 - 8) * (schema / 0.5)
+        else:
+            mean_words = 25 + (18 - 25) * ((schema - 0.5) / 0.5)
+        mean_words = int(mean_words)
 
         # Worked examples don't need explanations
         if action == "worked_example":
@@ -382,27 +382,20 @@ class SimulatedAgent:
         """
         Generate self-reported confidence (1-5).
 
-        Overconfident learners report higher than warranted.
-        Anxious learners report lower than warranted.
+        Uses metacognitive_bias parameter directly:
+        positive bias = overconfident, negative = underconfident.
         """
         rs = self.state.rs[skill]
         schema = self.state.schema[skill]
 
-        # Ground-truth competence
-        true_ability = rs * 0.5 + (schema / 2.0) * 0.5
+        # Ground-truth competence (schema already [0, 1])
+        true_ability = rs * 0.5 + schema * 0.5
 
         # Calibration noise
         noise = self.rng.normal(0, 0.15)
 
-        # Learner type bias
-        # Overconfident: consistently reports higher
-        # Anxious: consistently reports lower
-        # Others: roughly calibrated
-        bias = 0.0
-        if self.params.boredom_threshold > 0.35:  # Overconfident proxy
-            bias = 0.2
-        if self.params.frustration_threshold < 0.55:  # Anxious proxy
-            bias = -0.15
+        # Metacognitive bias from learner parameters
+        bias = self.params.metacognitive_bias
 
         reported = true_ability + noise + bias
         return int(np.clip(round(reported * 4 + 1), 1, 5))
@@ -470,34 +463,38 @@ class SimulatedAgent:
         self.state.ss[skill] = max(0.1, ss)
 
     def _update_schema(self, skill: str, action: str, correct: bool):
-        """Update schema level based on action and outcome."""
+        """Update schema level based on action and outcome (continuous [0, 1])."""
         schema = self.state.schema[skill]
-        if schema >= 2:
+        if schema >= 1.0:
             return  # Already full
 
-        # Schema formation probabilities by action
-        schema_probs = {
-            "worked_example": 0.3,     # Primary schema-building action
-            "faded_example": 0.2,      # Also builds schema
-            "reteach": 0.1,            # Some schema exposure
-            "space_and_test": 0.05,    # Testing doesn't build schema directly
-            "interleave": 0.05,
-            "increase_challenge": 0.05,
-            "reduce_load": 0.02,
-            "diagnostic_probe": 0.02,
+        # Base schema gain per action
+        schema_gains = {
+            "worked_example": 0.08,    # Primary schema-building action
+            "faded_example": 0.05,     # Also builds schema
+            "reteach": 0.03,           # Some schema exposure
+            "space_and_test": 0.01,    # Testing doesn't build schema directly
+            "interleave": 0.01,
+            "increase_challenge": 0.01,
+            "reduce_load": 0.005,
+            "diagnostic_probe": 0.005,
         }
-        p_improve = schema_probs.get(action, 0.05) * self.params.schema_formation_rate
+        gain = schema_gains.get(action, 0.01) * self.params.schema_formation_rate
+
+        # Expertise reversal: worked examples become less effective as schema grows
+        # gain × (1 - schema)^0.5 — largest at schema=0, approaches 0 at schema=1
+        if action in ("worked_example", "faded_example", "reteach"):
+            gain *= (1.0 - schema) ** 0.5
 
         # Correct answers while practicing contribute more
         if correct and action in ("faded_example", "space_and_test"):
-            p_improve *= 1.5
+            gain *= 1.5
 
         # Schema can't improve if WM is overloaded (can't form chunks under load)
         if self.state.wm_utilization > 0.8:
-            p_improve *= 0.2
+            gain *= 0.2
 
-        if self.rng.random() < p_improve:
-            self.state.schema[skill] = min(2, schema + 1)
+        self.state.schema[skill] = min(1.0, schema + gain)
 
     def _update_affect(self, action: str, correct: bool, eff_ei: float):
         """
@@ -622,7 +619,7 @@ class SimulatedAgent:
         for skill in SKILLS:
             rs = self.state.rs[skill]
             ss = min(1.0, self.state.ss[skill] / 30.0)  # Normalize SS to [0, 1]
-            schema = self.state.schema[skill] / 2.0
+            schema = self.state.schema[skill]  # Already [0, 1]
 
             # Mastery = RS * weight_rs + normalized_SS * weight_ss + schema * weight_schema
             skill_mastery = rs * 0.3 + ss * 0.4 + schema * 0.3
